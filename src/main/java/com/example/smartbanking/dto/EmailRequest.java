@@ -1,15 +1,10 @@
 package com.example.smartbanking.dto;
 
-public class OTPVerificationRequest {
+public class EmailRequest {
 
     private String email; // user email
-    private String code;  // otp code
 
     public String getEmail() {
         return email;
-    }
-
-    public String getCode() {
-        return code;
     }
 }

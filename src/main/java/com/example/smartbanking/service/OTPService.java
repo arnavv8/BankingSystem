@@ -1,5 +1,15 @@
 package com.example.smartbanking.service;
 
-public class OTPService {
+import com.example.smartbanking.entity.User;
+import com.example.smartbanking.entity.OTP;
 
+public interface OTPService {
+
+    OTP generateAndSendOtp(User user);   // create + email OTP
+
+    boolean validateOtp(String email, String code);   // check OTP
+
+    void markOtpUsed(OTP otp);   // prevent reuse
+
+    void removeExpiredOtps();   // cleanup
 }
