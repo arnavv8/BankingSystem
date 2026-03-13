@@ -25,7 +25,7 @@ public class JwtService {
     }
 
     private Claims parseToken(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
@@ -52,4 +52,3 @@ public class JwtService {
         return exp.before(new Date());
     }
 }
-``
