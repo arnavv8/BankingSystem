@@ -10,7 +10,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.function.Supplier;
 
 @Configuration
