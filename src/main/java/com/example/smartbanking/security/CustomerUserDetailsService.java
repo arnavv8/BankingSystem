@@ -19,15 +19,18 @@ public class CustomerUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
+        // If your User has fields like enabled/locked/expired, you can set them here via the builder methods.
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
-                .password(user.getPasswordHash())
-                .roles(user.getRoles().stream().map(Enum::name).toArray(String[]::new))
+                .password(user.getPasswordHash()) // ensure this is the hashed password field
+                .roles(user.getRoles().stream().map(Enum::name).toArray(String[]::new)) // adds ROLE_ prefix automatically
+                // .accountExpired(false)
+                // .accountLocked(false)
+                // .credentialsExpired(false)
+                // .disabled(!user.isEnabled())
                 .build();
     }
 }
