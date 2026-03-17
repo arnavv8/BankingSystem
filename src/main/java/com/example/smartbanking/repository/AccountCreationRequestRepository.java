@@ -8,15 +8,11 @@ import java.util.List;
 
 public interface AccountCreationRequestRepository extends JpaRepository<AccountCreationRequest, Long> {
 
-    // Either name is OK in Spring Data (findBy... or findAllBy...).
-    // Keep one style consistently; both return List<AccountCreationRequest>.
     List<AccountCreationRequest> findByStatus(RequestStatus status);
-    // List<AccountCreationRequest> findAllByStatus(RequestStatus status); // alternative
 
-    // IMPORTANT: your entity has 'User user', not 'Long userId'
-    // So use the association path "user.id"
+    // IMPORTANT: Your entity has `User user`, not `Long userId`
     List<AccountCreationRequest> findByUser_Id(Long userId);
 
-    // Useful to ensure the reserved number is unique across pending/approved requests
+    // Needed to ensure uniqueness while reserving account numbers
     boolean existsByReservedAccountNumber(String reservedAccountNumber);
 }

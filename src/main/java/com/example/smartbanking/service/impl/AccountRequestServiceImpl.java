@@ -1,7 +1,11 @@
 package com.example.smartbanking.service.impl;
 
 import com.example.smartbanking.dto.AccountCreateRequest;
-import com.example.smartbanking.entity.*;
+import com.example.smartbanking.entity.Account;
+import com.example.smartbanking.entity.AccountCreationRequest;
+import com.example.smartbanking.entity.AccountType;
+import com.example.smartbanking.entity.RequestStatus;
+import com.example.smartbanking.entity.User;
 import com.example.smartbanking.repository.AccountCreationRequestRepository;
 import com.example.smartbanking.repository.AccountRepository;
 import com.example.smartbanking.repository.UserRepository;
@@ -11,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class AccountRequestServiceImpl implements AccountRequestService {
@@ -20,10 +23,9 @@ public class AccountRequestServiceImpl implements AccountRequestService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
-    public AccountRequestServiceImpl(
-            AccountCreationRequestRepository requestRepository,
-            AccountRepository accountRepository,
-            UserRepository userRepository) {
+    public AccountRequestServiceImpl(AccountCreationRequestRepository requestRepository,
+                                     AccountRepository accountRepository,
+                                     UserRepository userRepository) {
         this.requestRepository = requestRepository;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
@@ -43,7 +45,7 @@ public class AccountRequestServiceImpl implements AccountRequestService {
         req.setAccountType(dto.getAccountType());
         req.setStatus(RequestStatus.PENDING);
 
-        // Auto-generate a unique account number and reserve it immediately
+        // Auto‑generate a unique account number and reserve it immediately
         req.setReservedAccountNumber(generateAccountNumber());
 
         return requestRepository.save(req);
@@ -58,7 +60,7 @@ public class AccountRequestServiceImpl implements AccountRequestService {
             throw new RuntimeException("Request is not in PENDING state.");
         }
 
-        // Create the actual Account using the reserved number
+        // Create the actual Account using the reserved number (constructor already exists in your Account entity)
         Account account = new Account(
                 req.getReservedAccountNumber(),
                 req.getAccountType(),
@@ -91,13 +93,15 @@ public class AccountRequestServiceImpl implements AccountRequestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AccountCreationRequest> getPendingRequests() {
         return requestRepository.findByStatus(RequestStatus.PENDING);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AccountCreationRequest> getRequestsByUser(Long userId) {
-        return requestRepository.findByUserId(userId);
+        return requestRepository.findByUser_Id(userId);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -108,7 +112,7 @@ public class AccountRequestServiceImpl implements AccountRequestService {
     }
 
     /**
-     * Generates a unique 12-digit numeric account number.
+     * Generates a unique 12‑character account number.
      * Format: "ACC" + 9 random digits, e.g. ACC847261930
      */
     private String generateAccountNumber() {

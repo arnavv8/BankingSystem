@@ -1,15 +1,28 @@
-
 package com.example.smartbanking.dto;
 
 import com.example.smartbanking.entity.AccountType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class AccountCreateRequest {
 
-    private Long userId;        // ID of the logged-in user
-    private String name;        // Full name of the applicant
-    private String address;     // Residential address
-    private String phoneNumber; // Contact phone number
-    private AccountType accountType; // SAVINGS or CURRENT
+    @NotNull
+    private Long userId; // because AccountCreationRequest.user is @ManyToOne(nullable = false)
+
+    @NotBlank @Size(max = 120)
+    private String name;
+
+    @NotBlank @Size(max = 300)
+    private String address;
+
+    @NotBlank @Size(max = 20)
+    @Pattern(regexp = "^[0-9+\\-() ]{7,20}$", message = "Invalid phone format")
+    private String phoneNumber;
+
+    @NotNull
+    private AccountType accountType;
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

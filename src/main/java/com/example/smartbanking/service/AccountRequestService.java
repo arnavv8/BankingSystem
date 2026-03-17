@@ -10,10 +10,10 @@ public interface AccountRequestService {
     /** User submits an account creation request; stays PENDING until admin acts */
     AccountCreationRequest submitRequest(AccountCreateRequest request);
 
-    /** Admin approves: activates the reserved account */
+    /** Admin approves: activates the reserved account and marks request APPROVED */
     AccountCreationRequest approveRequest(Long requestId, String adminRemarks);
 
-    /** Admin rejects the request */
+    /** Admin rejects the request with remarks */
     AccountCreationRequest rejectRequest(Long requestId, String adminRemarks);
 
     /** List all pending requests (for admin dashboard) */

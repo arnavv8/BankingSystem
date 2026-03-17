@@ -5,11 +5,16 @@ import com.example.smartbanking.dto.ApiResponse;
 import com.example.smartbanking.dto.RejectRequest;
 import com.example.smartbanking.entity.Account;
 import com.example.smartbanking.entity.AccountCreationRequest;
-import com.example.smartbanking.entity.AccountRequestStatus;
 import com.example.smartbanking.service.AccountRequestService;
 import com.example.smartbanking.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,15 +39,30 @@ public class AccountController {
      * User submits a new account creation request (PENDING).
      * We pre-reserve an account number to guarantee uniqueness on approval.
      */
-    @Operation(summary = "Request a new account (pending admin approval)")
-    @PostMapping("/request")
-    public ResponseEntity<ApiResponse> requestAccount(@RequestBody @Valid AccountCreateRequest request) {
-        AccountCreationRequest submitted = accountRequestService.submitRequest(request);
-        return ResponseEntity.ok(new ApiResponse(
-                "Account request submitted successfully. Awaiting admin approval.",
-                submitted.getReservedAccountNumber()
-        ));
-    }
+
+	@Operation(
+	    summary = "Request a new account (pending admin approval)",
+	    requestBody = @RequestBody(
+	        required = true,
+	        content = @Content(
+	            mediaType = "application/x-www-form-urlencoded",     // 👈 switch to form
+	            schema = @Schema(implementation = AccountCreateRequest.class)
+	        )
+	    )
+	)
+	@PostMapping(
+	    value = "/request",
+	    consumes = "application/x-www-form-urlencoded"               // 👈 important
+	)
+	public ResponseEntity<ApiResponse> requestAccount(@Valid AccountCreateRequest request) {
+	    // Spring will bind form fields to your DTO setters
+	    var submitted = accountRequestService.submitRequest(request);
+	    return ResponseEntity.ok(new ApiResponse(
+	        "Account request submitted successfully. Awaiting admin approval.",
+	        submitted.getReservedAccountNumber()
+	    ));
+	}
+
 
     /**
      * Get all account requests made by a user.
@@ -54,29 +74,29 @@ public class AccountController {
     }
 
     /**
-     * (Admin) List requests by status.
+     * (Admin) List all PENDING requests.
+     * (If you still want filtering by status, see Option B)
      */
-    @Operation(summary = "List account requests by status (Admin)")
-    @GetMapping("/requests")
-    public ResponseEntity<List<AccountCreationRequest>> listRequestsByStatus(
-            @RequestParam(defaultValue = "PENDING") AccountRequestStatus status) {
-        return ResponseEntity.ok(accountRequestService.listByStatus(status));
+    @Operation(summary = "List all PENDING account requests (Admin)")
+    @GetMapping("/requests/pending")
+    public ResponseEntity<List<AccountCreationRequest>> listPendingRequests() {
+        return ResponseEntity.ok(accountRequestService.getPendingRequests());
     }
 
     /**
      * (Admin) Approve request -> creates Account with the reserved account number.
-     * Admin provides the real userId to attach to the Account.
+     * Admin can pass optional remarks.
      */
     @Operation(summary = "Approve an account request (Admin)")
     @PostMapping("/requests/{requestId}/approve")
     public ResponseEntity<ApiResponse> approveRequest(
             @PathVariable Long requestId,
-            @RequestParam Long userId) {
+            @RequestParam(required = false, defaultValue = "Approved by admin") String adminRemarks) {
 
-        Account account = accountRequestService.approveRequest(requestId, userId);
+        AccountCreationRequest approved = accountRequestService.approveRequest(requestId, adminRemarks);
         return ResponseEntity.ok(new ApiResponse(
                 "Account approved and created successfully",
-                account.getAccountNumber()
+                approved.getReservedAccountNumber()
         ));
     }
 
@@ -96,7 +116,7 @@ public class AccountController {
         ));
     }
 
-    // --- Your existing account APIs still work as-is ---
+    // --- Existing account APIs still work as-is ---
 
     @Operation(summary = "Get all accounts for a user")
     @GetMapping("/user/{userId}")
