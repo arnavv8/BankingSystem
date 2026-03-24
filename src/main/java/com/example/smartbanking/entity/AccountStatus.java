@@ -1,6 +1,6 @@
 package com.example.smartbanking.entity;
 
-public enum RequestStatus {
+public enum AccountStatus {
     PENDING,
     APPROVED,
     REJECTED

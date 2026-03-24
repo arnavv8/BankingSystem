@@ -30,7 +30,7 @@ public class AccountCreationRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RequestStatus status = RequestStatus.PENDING;
+    private AccountStatus status = AccountStatus.PENDING;
 
     @Column(nullable = false)
     private LocalDateTime requestedAt = LocalDateTime.now();
@@ -67,8 +67,8 @@ public class AccountCreationRequest {
     public AccountType getAccountType() { return accountType; }
     public void setAccountType(AccountType accountType) { this.accountType = accountType; }
 
-    public RequestStatus getStatus() { return status; }
-    public void setStatus(RequestStatus status) { this.status = status; }
+    public AccountStatus getStatus() { return status; }
+    public void setStatus(AccountStatus status) { this.status = status; }
 
     public LocalDateTime getRequestedAt() { return requestedAt; }
 

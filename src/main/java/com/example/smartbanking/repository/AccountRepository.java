@@ -1,6 +1,7 @@
 package com.example.smartbanking.repository;
 
 import com.example.smartbanking.entity.Account;
+import com.example.smartbanking.entity.AccountStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findByUser_Id(Long userId);
 
     Page<Account> findByUser_Id(Long userId, Pageable pageable);
+
+    List<Account> findByStatus(AccountStatus status);
 
     Optional<Account> findByAccountNumber(String accountNumber);
 

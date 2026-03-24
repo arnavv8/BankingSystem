@@ -1,11 +1,7 @@
 package com.example.smartbanking.service.impl;
 
 import com.example.smartbanking.dto.AccountCreateRequest;
-import com.example.smartbanking.entity.Account;
-import com.example.smartbanking.entity.AccountCreationRequest;
-import com.example.smartbanking.entity.AccountType;
-import com.example.smartbanking.entity.RequestStatus;
-import com.example.smartbanking.entity.User;
+import com.example.smartbanking.entity.*;
 import com.example.smartbanking.repository.AccountCreationRequestRepository;
 import com.example.smartbanking.repository.AccountRepository;
 import com.example.smartbanking.repository.UserRepository;
@@ -17,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Transactional
 public class AccountRequestServiceImpl implements AccountRequestService {
 
     private final AccountCreationRequestRepository requestRepository;
@@ -31,11 +28,15 @@ public class AccountRequestServiceImpl implements AccountRequestService {
         this.userRepository = userRepository;
     }
 
+    // ============================================================
+    // SUBMIT ACCOUNT CREATION REQUEST (USER)
+    // ============================================================
     @Override
-    @Transactional
-    public AccountCreationRequest submitRequest(AccountCreateRequest dto) {
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found: " + dto.getUserId()));
+    public AccountCreationRequest submitRequest(AccountCreateRequest dto, String userEmail) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("Authenticated user not found: " + userEmail));
 
         AccountCreationRequest req = new AccountCreationRequest();
         req.setUser(user);
@@ -43,78 +44,117 @@ public class AccountRequestServiceImpl implements AccountRequestService {
         req.setAddress(dto.getAddress());
         req.setPhoneNumber(dto.getPhoneNumber());
         req.setAccountType(dto.getAccountType());
-        req.setStatus(RequestStatus.PENDING);
+        req.setStatus(AccountStatus.PENDING);
 
-        // Auto‑generate a unique account number and reserve it immediately
+        // Generate and reserve account number
         req.setReservedAccountNumber(generateAccountNumber());
 
         return requestRepository.save(req);
     }
 
+    // ============================================================
+    // APPROVE REQUEST (ADMIN)
+    // ANY ONE ADMIN CAN APPROVE
+    // ============================================================
     @Override
-    @Transactional
-    public AccountCreationRequest approveRequest(Long requestId, String adminRemarks) {
+    public AccountCreationRequest approveRequest(Long requestId,
+                                                 String adminEmail,
+                                                 String adminRemarks) {
+
         AccountCreationRequest req = findById(requestId);
 
-        if (req.getStatus() != RequestStatus.PENDING) {
+        // ✅ FIXED: Use AccountStatus
+        if (req.getStatus() != AccountStatus.PENDING) {
             throw new RuntimeException("Request is not in PENDING state.");
         }
 
-        // Create the actual Account using the reserved number (constructor already exists in your Account entity)
-        Account account = new Account(
-                req.getReservedAccountNumber(),
-                req.getAccountType(),
-                req.getUser()
-        );
+        // Validate admin
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found: " + adminEmail));
+
+        if (admin.getRoles().contains(Role.ADMIN)){
+            throw new RuntimeException("Only admins can approve requests");
+        }
+
+        // Create actual account
+        Account account = new Account();
+        account.setAccountNumber(req.getReservedAccountNumber());
+        account.setAccountType(req.getAccountType());
+        account.setUser(req.getUser());
+        account.setStatus(AccountStatus.APPROVED);
+        account.setFrozen(false);
+
         accountRepository.save(account);
 
-        // Update request status
-        req.setStatus(RequestStatus.APPROVED);
+        // Update request
+        req.setStatus(AccountStatus.APPROVED);
         req.setReviewedAt(LocalDateTime.now());
         req.setAdminRemarks(adminRemarks);
 
         return requestRepository.save(req);
     }
 
+    // ============================================================
+    // REJECT REQUEST (ADMIN)
+    // ============================================================
     @Override
-    @Transactional
-    public AccountCreationRequest rejectRequest(Long requestId, String adminRemarks) {
+    public AccountCreationRequest rejectRequest(Long requestId,
+                                                String adminEmail,
+                                                String adminRemarks) {
+
         AccountCreationRequest req = findById(requestId);
 
-        if (req.getStatus() != RequestStatus.PENDING) {
+        if (req.getStatus() != AccountStatus.PENDING) {
             throw new RuntimeException("Request is not in PENDING state.");
         }
 
-        req.setStatus(RequestStatus.REJECTED);
+        // Validate admin
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found: " + adminEmail));
+
+        if (admin.getRoles().contains(Role.ADMIN)) {
+            throw new RuntimeException("Only admins can reject requests");
+        }
+
+        req.setStatus(AccountStatus.REJECTED);
         req.setReviewedAt(LocalDateTime.now());
         req.setAdminRemarks(adminRemarks);
 
         return requestRepository.save(req);
     }
 
+    // ============================================================
+    // GET ALL PENDING REQUESTS (ADMIN)
+    // ============================================================
     @Override
     @Transactional(readOnly = true)
     public List<AccountCreationRequest> getPendingRequests() {
-        return requestRepository.findByStatus(RequestStatus.PENDING);
+        return requestRepository.findByStatus(AccountStatus.PENDING);
     }
 
+    // ============================================================
+    // GET USER'S REQUESTS
+    // ============================================================
     @Override
     @Transactional(readOnly = true)
-    public List<AccountCreationRequest> getRequestsByUser(Long userId) {
-        return requestRepository.findByUser_Id(userId);
+    public List<AccountCreationRequest> getRequestsByUser(String userEmail) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found: " + userEmail));
+
+        return requestRepository.findByUser_Id(user.getId());
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
     private AccountCreationRequest findById(Long id) {
         return requestRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Account request not found: " + id));
+                .orElseThrow(() ->
+                        new RuntimeException("Account request not found: " + id));
     }
 
-    /**
-     * Generates a unique 12‑character account number.
-     * Format: "ACC" + 9 random digits, e.g. ACC847261930
-     */
     private String generateAccountNumber() {
         String number;
         do {

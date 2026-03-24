@@ -5,7 +5,7 @@ public class TokenResponse {
     private String accessToken; // jwt
     private long expiresIn;     // expiry seconds
 
-    public TokenResponse(String accessToken, long expiresIn) {
+    public TokenResponse(String accessToken) {
         this.accessToken = accessToken;
         this.expiresIn = expiresIn;
     }

@@ -1,7 +1,8 @@
 package com.example.smartbanking.service.impl;
 
+import com.example.smartbanking.dto.AccountCreateRequest;
 import com.example.smartbanking.entity.Account;
-import com.example.smartbanking.entity.AccountType;
+import com.example.smartbanking.entity.AccountStatus;
 import com.example.smartbanking.entity.User;
 import com.example.smartbanking.exception.AccountNotFoundException;
 import com.example.smartbanking.repository.AccountRepository;
@@ -27,62 +28,76 @@ public class AccountServiceImpl implements AccountService {
         this.userRepository = userRepository;
     }
 
-    // -----------------------------
-    // CREATE ACCOUNT
-    // -----------------------------
     @Override
-    public Account createAccount(Long userId, AccountType accountType) {
+    public Account createAccount(AccountCreateRequest request, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + userEmail));
 
-        // 1) Load the User entity (Account has @ManyToOne User)
-        User user = userRepository.findById(userId)
-        		.orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
-
-        // 2) Generate a unique account number
-        String accountNumber = generateUniqueAccountNumber();
-
-        // 3) Build and save Account
         Account account = new Account();
-        account.setAccountNumber(accountNumber);
-        account.setAccountType(accountType);
+        account.setAccountNumber(generateUniqueAccountNumber());
+        account.setAccountType(request.getAccountType());
         account.setUser(user);
-        // balance, createdAt, frozen are defaulted in your entity
+        account.setStatus(AccountStatus.PENDING);
+        account.setFrozen(false);
 
         return accountRepository.save(account);
     }
 
-    private String generateUniqueAccountNumber() {
-        String acc;
-        do {
-            acc = "SB" + (10000000 + random.nextInt(90000000)); // e.g., SB12345678
-        } while (accountRepository.existsByAccountNumber(acc));
-        return acc;
-    }
-
-    // -----------------------------
-    // GET ALL ACCOUNTS FOR A USER
-    // -----------------------------
     @Override
     @Transactional(readOnly = true)
-    public List<Account> getAccountsForUser(Long userId) {
-        // Note: repository method navigates association path user.id
-        return accountRepository.findByUser_Id(userId);
+    public List<Account> getUserAccounts(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found: " + userEmail));
+        return accountRepository.findByUser_Id(user.getId());
     }
 
-    // -----------------------------
-    // GET SINGLE ACCOUNT
-    // -----------------------------
+    @Override
+    @Transactional(readOnly = true)
+    public List<Account> getPendingAccounts() {
+        return accountRepository.findByStatus(AccountStatus.PENDING);
+    }
+
+    @Override
+    public void approveAccount(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountId));
+
+        if (account.getStatus() == AccountStatus.APPROVED) {
+            return;
+        }
+
+        if (account.getStatus() == AccountStatus.REJECTED) {
+            throw new IllegalStateException("Rejected account cannot be approved.");
+        }
+
+        account.setStatus(AccountStatus.APPROVED);
+        accountRepository.save(account);
+    }
+
+    @Override
+    public void rejectAccount(Long accountId, String reason) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountId));
+
+        if (account.getStatus() == AccountStatus.APPROVED) {
+            throw new IllegalStateException("Approved account cannot be rejected.");
+        }
+
+        if (account.getStatus() == AccountStatus.REJECTED) {
+            return;
+        }
+
+        account.setStatus(AccountStatus.REJECTED);
+        accountRepository.save(account);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Account getAccountByNumber(String accountNumber) {
         return accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(
-                        "Account not found: " + accountNumber
-                ));
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
     }
 
-    // -----------------------------
-    // FREEZE ACCOUNT
-    // -----------------------------
     @Override
     public void freezeAccount(String accountNumber) {
         Account account = getAccountByNumber(accountNumber);
@@ -92,9 +107,6 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    // -----------------------------
-    // UNFREEZE ACCOUNT
-    // -----------------------------
     @Override
     public void unfreezeAccount(String accountNumber) {
         Account account = getAccountByNumber(accountNumber);
@@ -102,5 +114,13 @@ public class AccountServiceImpl implements AccountService {
             account.setFrozen(false);
             accountRepository.save(account);
         }
+    }
+
+    private String generateUniqueAccountNumber() {
+        String acc;
+        do {
+            acc = "SB" + (10000000 + random.nextInt(90000000));
+        } while (accountRepository.existsByAccountNumber(acc));
+        return acc;
     }
 }

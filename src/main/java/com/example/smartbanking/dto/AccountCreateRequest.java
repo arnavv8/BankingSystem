@@ -8,34 +8,56 @@ import jakarta.validation.constraints.Size;
 
 public class AccountCreateRequest {
 
-    @NotNull
-    private Long userId; // because AccountCreationRequest.user is @ManyToOne(nullable = false)
-
-    @NotBlank @Size(max = 120)
+    @NotBlank
+    @Size(max = 120)
     private String name;
 
-    @NotBlank @Size(max = 300)
+    @NotBlank
+    @Size(max = 300)
     private String address;
 
-    @NotBlank @Size(max = 20)
-    @Pattern(regexp = "^[0-9+\\-() ]{7,20}$", message = "Invalid phone format")
+    @NotBlank
+    @Size(max = 20)
+    @Pattern(
+            regexp = "^[0-9+\\-() ]{7,20}$",
+            message = "Invalid phone format"
+    )
     private String phoneNumber;
 
     @NotNull
     private AccountType accountType;
 
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    // -------------------- Getters & Setters --------------------
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getAddress() {
+        return address;
+    }
 
-    public AccountType getAccountType() { return accountType; }
-    public void setAccountType(AccountType accountType) { this.accountType = accountType; }
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public AccountType getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(AccountType accountType) {
+        this.accountType = accountType;
+    }
 }

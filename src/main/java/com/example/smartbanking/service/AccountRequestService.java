@@ -7,18 +7,13 @@ import java.util.List;
 
 public interface AccountRequestService {
 
-    /** User submits an account creation request; stays PENDING until admin acts */
-    AccountCreationRequest submitRequest(AccountCreateRequest request);
+    AccountCreationRequest submitRequest(AccountCreateRequest dto, String userEmail);
 
-    /** Admin approves: activates the reserved account and marks request APPROVED */
-    AccountCreationRequest approveRequest(Long requestId, String adminRemarks);
+    AccountCreationRequest approveRequest(Long requestId, String adminEmail, String adminRemarks);
 
-    /** Admin rejects the request with remarks */
-    AccountCreationRequest rejectRequest(Long requestId, String adminRemarks);
+    AccountCreationRequest rejectRequest(Long requestId, String adminEmail, String adminRemarks);
 
-    /** List all pending requests (for admin dashboard) */
     List<AccountCreationRequest> getPendingRequests();
 
-    /** List all requests made by a specific user */
-    List<AccountCreationRequest> getRequestsByUser(Long userId);
+    List<AccountCreationRequest> getRequestsByUser(String userEmail);
 }

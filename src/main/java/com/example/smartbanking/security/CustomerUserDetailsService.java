@@ -26,7 +26,7 @@ public class CustomerUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPasswordHash()) // ensure this is the hashed password field
-                .roles(user.getRoles().stream().map(Enum::name).toArray(String[]::new)) // adds ROLE_ prefix automatically
+                .roles(user.getRoles().stream().map(Enum::name).toArray(String[]::new)) // adds ROLE_ prefix automatically // adds ROLE_ prefix automatically
                 // .accountExpired(false)
                 // .accountLocked(false)
                 // .credentialsExpired(false)

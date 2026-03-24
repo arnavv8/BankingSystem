@@ -12,27 +12,38 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The unique bank account number (not ID)
+    // Unique bank account number
     @Column(nullable = false, unique = true)
     private String accountNumber;
 
+    // SAVINGS, CURRENT, etc.
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccountType accountType;   // SAVINGS, CURRENT, etc.
+    private AccountType accountType;
 
+    // PENDING, APPROVED, REJECTED
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private AccountStatus status = AccountStatus.PENDING;
+
+    // Account balance
     @Column(nullable = false)
     private BigDecimal balance = BigDecimal.ZERO;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    // Account creation timestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    // For admin/fraud freeze
     @Column(nullable = false)
-    private Boolean frozen = false;   // For admin/fraud actions
+    private Boolean frozen = false;
 
-    // Relationship: Many accounts belong to one user
+    // Many accounts → one user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    // -------------------- Constructors --------------------
 
     public Account() {
     }
@@ -42,11 +53,27 @@ public class Account {
         this.accountType = accountType;
         this.user = user;
         this.balance = BigDecimal.ZERO;
-        this.createdAt = LocalDateTime.now();
+        this.status = AccountStatus.PENDING;
         this.frozen = false;
     }
 
-    // ------------ Getters & Setters ----------------
+    // -------------------- Lifecycle Hooks --------------------
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        if (this.balance == null) {
+            this.balance = BigDecimal.ZERO;
+        }
+        if (this.status == null) {
+            this.status = AccountStatus.PENDING;
+        }
+        if (this.frozen == null) {
+            this.frozen = false;
+        }
+    }
+
+    // -------------------- Getters & Setters --------------------
 
     public Long getId() {
         return id;
@@ -66,6 +93,14 @@ public class Account {
 
     public void setAccountType(AccountType accountType) {
         this.accountType = accountType;
+    }
+
+    public AccountStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
     }
 
     public BigDecimal getBalance() {
